@@ -1,3 +1,6 @@
+**This is the final project in CS4280 and was a collective effort of P0, P1, P2 and P3. The 
+end result was a built interpretive compiler that runs on Dr. Janikow's VirtMach**
+=========================================================================================
 Storage=Local 
 Passes all test files: (s1, s2, s3) (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10)
 
