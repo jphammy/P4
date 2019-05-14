@@ -1,45 +1,6 @@
-Storage=Local 
+Storage=Local
 Passes all test files: (s1, s2, s3) (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10)
 
 For keyboard input:
 ./comp
-When done typing, CTRL+D to generate out.asm 
-==================================================================================
-P4 Code Generation
-
-Storage = Local 
-
-No late submissions without approval. The following people (posted by Sunday) must present in person.
-
-Failure to show will result in 0 points. Others are welcome to come in.
-
-Submission command
-/accounts/classes/janikowc/submitProject/submit_cs42801_P4 SubmitFileOrDirectory
-Invocation
-
-comp [file]
-where file is as before with implicit extension. Wrong invocations will not be graded.
-
-Details
-The program is to parse the input, generate a parse tree, perform static semantics, and then generate a target file. Any error should display detailed message, including line number if available (depending on scanner).
-
-The target name should be
-
-out.asm if keyboard input
-file.asm if file input. The base name matches that of the input file
-The program has 2 parts to be properly generated:
-
-Code generation
-120
-Storage allocation global option 30 (+20 for local)
-
-Global - all variables allocated globally.
-Local - variables outside of a block are scoped in the entire program, variables in a block are scoped in that block
-Note that this does not have to match your static semantics but local storage will use the same mechanisms as local semantics.
-
-An included README.txt file must say Storage=Global or Local on the first line. Otherwise global will be assumed. Also please list on the 2nd line in the README.txt file list the test program names that work correct and on the 3rd line the ones that dont and what happens (wrong output or core dump or the asm file doesnt run). If you didnt run test, state in there why you didnt test.
-
-Temporary variables can processed as global scope even when doing local scoping for user variables.
-
-Upon success, only display the name of the target file generated and no other output. Upon error and the error message, no other display and no target should be generated.
->>>>>>> 91404b75de747edbad3607c32fb6b11a9a0a6ef9
+When done typing, CTRL+D to generate out.asm
