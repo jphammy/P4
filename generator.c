@@ -1,48 +1,53 @@
-//JPham
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "tree.h"
+#include "generator.h"
 #include "token.h"
 #include "node.h"
 #include "identifierStack.h"
-#include "tree.h"
-#include "generator.h"
+#define LENGTH 5
 
-#define LENGTH 5 // V/L + 000 + \0
+static int labelCount = 0;
+static int tempVarCount = 0;
+static char name[LENGTH];
 
 typedef enum {
-    VAR, LABEL
+    VAR,  //For unique  Variables
+    LABEL //For nodeType Label
 } nameType;
 
-static int labelCount = 0; // unique labels
-static int tempVarCount = 0; // unique variables
-static char name[LENGTH];
 
 static char *newName(nameType type) {
     if (type == VAR) {
-        sprintf(name, "V%d", tempVarCount++);
+        sprintf(name, "V%d", tempVarCount++); //Increment tempVarCount if VAR
     }
     else if (type == LABEL) {
-        sprintf(name, "L%d", labelCount++);
+        sprintf(name, "L%d", labelCount++);   //Increment labelCount if Label
     }
     return name;
 }
 
 void recGen(node *n, int *varCount, FILE *outFilePtr) {
+
+    int distance;
     char label[LENGTH];
     char label2[LENGTH];
     char arg[LENGTH];
-    int distance;
-
     distance = verifyNode(n, varCount, outFilePtr);
 
+    // Setup switch/case statement to traverse nodeType 
+    // and perform Static Semantics and Code Generation
+    // for corresponding Labels
     switch (n->label) {
+
+	// <expr>        ->      <A> + <expr> | <A> - <expr> | <A>
         case EXPRnd:   if (n->token1.type != NULLtk) {
                            staticSemantics(n->child2, varCount, outFilePtr);
                            strcpy(arg, newName(VAR));
                            fprintf(outFilePtr, "STORE %s\n", arg);
-                           staticSemantics(n->child1, varCount, outFilePtr);
+                          
+ 			   staticSemantics(n->child1, varCount, outFilePtr);
                            if (n->token1.type == PLUStk) {
                                fprintf(outFilePtr, "ADD %s\n", arg);
                            }
@@ -54,46 +59,50 @@ void recGen(node *n, int *varCount, FILE *outFilePtr) {
                            staticSemantics(n->child1, varCount, outFilePtr);
                        }
                        break;
+
+	// <A>             ->        <N> * <A> | <N>
         case And:      if (n->token1.type != NULLtk) {
                            staticSemantics(n->child2, varCount, outFilePtr);
                            strcpy(arg, newName(VAR));
                            fprintf(outFilePtr, "STORE %s\n", arg);
+
                            staticSemantics(n->child1, varCount, outFilePtr);
                            if (n->token1.type == MULTtk) {
                                fprintf(outFilePtr, "MULT %s\n", arg);
                            }
-                           //else if (n->token1.type == MINUStk) {
-                           //    fprintf(outFilePtr, "SUB %s\n", arg);
-                           //}
-                       }
-                       else {
-                           staticSemantics(n->child1, varCount, outFilePtr);
-                       }
-                       break;
-	case Nnd:
-		       if (n->token1.type != NULLtk) {
-                           staticSemantics(n->child2, varCount, outFilePtr);
-                           strcpy(arg, newName(VAR));
-                           fprintf(outFilePtr, "STORE %s\n", arg);
-                           staticSemantics(n->child1, varCount, outFilePtr);
-                           if (n->token1.type == DIVtk) {
-                               fprintf(outFilePtr, "DIV %s\n", arg);
-                           }
-                           //else if (n->token1.type == MULTtk) {
-                           //    fprintf(outFilePtr, "MULT %s\n", arg);
-                           //}
                        }
                        else {
                            staticSemantics(n->child1, varCount, outFilePtr);
                        }
                        break;
 
- 
-        case Mnd:      staticSemantics(n->child1, varCount, outFilePtr);
-                       if (n->child1->label == Mnd ) {
-			   fprintf(outFilePtr, "MULT -1\n");
+	// <N>             ->       <M> / <N> | <M>	
+        case Nnd:
+                       if (n->token1.type != NULLtk) {
+                           staticSemantics(n->child2, varCount, outFilePtr);
+                           strcpy(arg, newName(VAR));
+
+                           fprintf(outFilePtr, "STORE %s\n", arg);
+                           staticSemantics(n->child1, varCount, outFilePtr);
+                           if (n->token1.type == DIVtk) {
+                               fprintf(outFilePtr, "DIV %s\n", arg);
+                           }
+                       }
+                       else {
+                           staticSemantics(n->child1, varCount, outFilePtr);
                        }
                        break;
+
+	// <M>              ->     - <M> |  <R>
+        case Mnd:      staticSemantics(n->child1, varCount, outFilePtr);
+                       if (n->child1->label == Mnd ) {
+                           fprintf(outFilePtr, "MULT -1\n");
+                       }
+                       break;
+
+	// <R>              ->      [ <expr> ] | Identifier | Integeri
+	// For <R> nodes with Local IDtk  = STACKR
+	// 		      Local INTtk = LOAD
         case Rnd:      if (n->child1 == NULL) {
                            if (n->token1.type == IDtk) {
                                fprintf(outFilePtr, "STACKR %d\n", distance);
@@ -106,22 +115,34 @@ void recGen(node *n, int *varCount, FILE *outFilePtr) {
                            staticSemantics(n->child1, varCount, outFilePtr);
                        }
                        break;
+
+	// <in>              ->      Read [ Identifier ]  
+	// for <in> nodes with Local Variables
+	// create tempory READ, LOAD, STACKW#
+	// to target file .asm
         case INnd:     strcpy(arg, newName(VAR));
                        fprintf(outFilePtr, "READ %s\n", arg);
                        fprintf(outFilePtr, "LOAD %s\n", arg);
                        fprintf(outFilePtr, "STACKW %d\n", find(n->token1, 2));
                        break;
+
+	// <out>            ->      Output [ <expr> ]
         case OUTnd:    staticSemantics(n->child1, varCount, outFilePtr);
                        strcpy(arg, newName(VAR));
                        fprintf(outFilePtr, "STORE %s\n", arg);
                        fprintf(outFilePtr, "WRITE %s\n", arg);
                        break;
+
+	// <if>               ->      IFF [ <expr> <RO> <expr> ] <stat>
         case IFnd:     staticSemantics(n->child3, varCount, outFilePtr);
                        strcpy(arg, newName(VAR));
                        fprintf(outFilePtr, "STORE %s\n", arg);
+
                        staticSemantics(n->child1, varCount, outFilePtr);
                        fprintf(outFilePtr, "SUB %s\n", arg);
                        strcpy(label, newName(LABEL));
+
+		       // Setup switch statement for Relational Operator Tokens
                        switch (n->child2->token1.type) {
                            case GREATERtk: n->child2->token2.type == EQtk ? fprintf(outFilePtr, "BRNEG %s\n", label) : fprintf(outFilePtr, "BRZNEG %s\n", label);
                                            break;
@@ -135,14 +156,19 @@ void recGen(node *n, int *varCount, FILE *outFilePtr) {
                        staticSemantics(n->child4, varCount, outFilePtr);
                        fprintf(outFilePtr, "%s: NOOP\n", label);
                        break;
+
+	// <loop>          ->      Loop [ <expr> <RO> <expr> ] <stat>
         case LOOPnd:   strcpy(label, newName(LABEL));
                        fprintf(outFilePtr, "%s: NOOP\n", label);
                        staticSemantics(n->child3, varCount, outFilePtr);
                        strcpy(arg, newName(VAR));
                        fprintf(outFilePtr, "STORE %s\n", arg);
+
                        staticSemantics(n->child1, varCount, outFilePtr);
                        fprintf(outFilePtr, "SUB %s\n", arg);
                        strcpy(label2, newName(LABEL));
+
+		       // Setup switch statement for Relational Operator Tokens
                        switch (n->child2->token1.type) {
                            case GREATERtk: n->child2->token2.type == EQtk ? fprintf(outFilePtr, "BRNEG %s\n", label2) : fprintf(outFilePtr, "BRZNEG %s\n", label2);
                                            break;
@@ -157,9 +183,12 @@ void recGen(node *n, int *varCount, FILE *outFilePtr) {
                        fprintf(outFilePtr, "BR %s\n", label);
                        fprintf(outFilePtr, "%s: NOOP\n", label2);
                        break;
+
+	// <assign>       ->      Identifier  = <expr>  
         case ASSIGNnd: staticSemantics(n->child1, varCount, outFilePtr);
                        fprintf(outFilePtr, "STACKW %d\n", distance);
                        break;
+
         default:       staticSemantics(n->child1, varCount, outFilePtr);
                        staticSemantics(n->child2, varCount, outFilePtr);
                        staticSemantics(n->child3, varCount, outFilePtr);
@@ -169,7 +198,6 @@ void recGen(node *n, int *varCount, FILE *outFilePtr) {
 }
 
 void generator(node *program, FILE *outFilePtr) {
-    int i;
 
     if (program == NULL || program->label != PROGRAMnd) {
         printf("Generator Error: Invalid parse tree received\n");
@@ -179,7 +207,7 @@ void generator(node *program, FILE *outFilePtr) {
     staticSemantics(program, NULL, outFilePtr); //If program exists, call this function to proceed//
 
     fprintf(outFilePtr, "STOP\n"); //Return after staticSemantics fxn processed
-
+    int i;
     for (i = 0; i < tempVarCount; i++) {
         fprintf(outFilePtr, "V%d 0\n", i);
     }
@@ -188,18 +216,16 @@ void generator(node *program, FILE *outFilePtr) {
 void staticSemantics(node *n, int *varCount, FILE *outFilePtr) {
     if (n != NULL) { //If not empty, proceed
         if (n->label == BLOCKnd || n->label == PROGRAMnd) { //PROGRAM or BLOCK
-            int i;
             int *varCount = (int *) malloc(sizeof(int));
             *varCount = 0;
 
             recGen(n, varCount, outFilePtr); //Call main recGen fxn above
-
+	    int i;
             for (i = 0; i < *varCount; i++) {
-                pop();
+                pop();	// Print POP to target file upon calling pop()
                 fprintf(outFilePtr, "POP\n");
             }
-
-            free(varCount);
+            free(varCount); //Free allocated memory
         }
         else {
             recGen(n, varCount, outFilePtr);
@@ -208,13 +234,14 @@ void staticSemantics(node *n, int *varCount, FILE *outFilePtr) {
 }
 
 int verifyNode(node *n, int *varCount, FILE *outFilePtr) {
-    int distance = -1;
+
+    int distance = (-1);
     if (n->label == VARSnd) {
         if (n->token1.type == IDtk) {
             if (*varCount > 0) {
                 distance = find(n->token1, 1);  // set error reporting to type 1
             }
-            push(n->token1);
+            push(n->token1); 	// Print PUSH to target file upon calling push()
             fprintf(outFilePtr, "PUSH\n");
             (*varCount)++;
             return distance;

@@ -27,6 +27,7 @@ node * parser(FILE *inputFile) {
     if (tk.type != EOFtk) {
         error2();
     }
+   // printf("Parser Success\n");    // TEST
     return root;
 }
 
@@ -39,7 +40,7 @@ node * Program() {
 }
 
 node * Block() {
- 
+
    if (tk.type == BEGINtk) {
         node *node = createNode(BLOCKnd);
         tk = scanner(inputFilePtr);
@@ -59,12 +60,12 @@ node * Block() {
 
 node * Vars() {
     node *node = createNode(VARSnd);
-    
+
         if (tk.type == INTtk) {
             tk = scanner(inputFilePtr);
 
             if (tk.type == IDtk) {
-		node->token1 = tk;
+                node->token1 = tk;
                 tk = scanner(inputFilePtr);
 
                 if (tk.type == INTEGERtk) {
@@ -95,7 +96,7 @@ node * Expr() {
 
         node->child2 = Expr();
     }
-    
+
     return node;
 }
 
@@ -177,13 +178,14 @@ node * Stats() {
     node *node = createNode(STATSnd);
     node->child1 = Stat();
 
-    if (tk.type == COLtk) {
+   // if (tk.type == COLtk) {
         tk = scanner(inputFilePtr);
-    	node->child2 = MStat();
- 	return node;
-    }
-    error();
-    return NULL;
+        node->child2 = MStat();
+        //return node;
+   // } //else
+	 //error();
+    //return NULL;
+    return node;
 }
 
 
@@ -191,16 +193,16 @@ node * MStat() {
     node *node = createNode(MSTATnd);
 
     if (tk.type == READtk || tk.type == OUTPUTtk || tk.type == BEGINtk || tk.type == IFFtk || tk.type == LOOPtk || tk.type == IDtk) {    // do not consume token
-           
+
            node->child1 = Stat();
-           	if (tk.type == COLtk) {
-               		tk = scanner(inputFilePtr);
-	      	        node->child2 = MStat();
-	      	        return node;
-           	}       
-        error();
-    return NULL;
-    }
+                //if (tk.type == COLtk) {
+                        tk = scanner(inputFilePtr);
+                        node->child2 = MStat();
+                        //return node;
+                } //else
+        	    //error();
+    //return NULL;
+    
     return node;
 }
 
@@ -246,17 +248,17 @@ node * In() {
             if (tk.type == LBRACKtk) {
                 tk = scanner(inputFilePtr);
 
-		if (tk.type == IDtk) {
-		        node->token1=tk;
-                	tk = scanner(inputFilePtr);
+                if (tk.type == IDtk) {
+                        node->token1=tk;
+                        tk = scanner(inputFilePtr);
 
                     if (tk.type == RBRACKtk) {
                         tk = scanner(inputFilePtr);
                         return node;
                     }
-                    error();                
+                    error();
                 }
-                error();        
+                error();
             }
             error();
     }
@@ -278,7 +280,7 @@ node * Out() {
 
             if (tk.type == RBRACKtk) {
                 tk = scanner(inputFilePtr);
-                return node;               
+                return node;
             }
             error();
         }
@@ -353,6 +355,7 @@ node * Assign() {
             tk = scanner(inputFilePtr);
 
             node->child1 = Expr();
+	    return node; //Added 5/13
         }
         error();
     }
@@ -373,12 +376,12 @@ node * RO() {
             tk = scanner(inputFilePtr);
             return node;
         }
-	else if (tk.type == GREATERtk) {
+        else if (tk.type == GREATERtk) {
             node->token2 = tk;
             tk = scanner(inputFilePtr);
             return node;
         }
-	else if (tk.type == EQtk) {
+        else if (tk.type == EQtk) {
             node->token2 = tk;
             tk = scanner(inputFilePtr);
             return node;
@@ -398,4 +401,3 @@ void error2() {
     printf("Parser Error: Extra token '%s' received after end of program (line %d)\n", tokenNames[tk.type], tk.lineNum);
     exit(tk.type);
 }
-
