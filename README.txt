@@ -1,6 +1,6 @@
-//Jonathan Pham
-//CS4280 P4
-//05/13/19
+Storage=Local 
+Passes all test files: (s1, s2, s3) (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10)
 
-***** Local Option for +20 points *****
-
+For keyboard input:
+./comp
+When done typing, CTRL+D to generate out.asm 
